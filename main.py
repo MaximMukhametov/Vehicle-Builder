@@ -1,14 +1,14 @@
-import sys
-
 from aiohttp import web
 
-from db import pg_context
-from settings import get_config, config
+from db.engine import pg_context
+from middlewares import db_session_middleware
+from settings import config
+from views import routes
 
 
 async def init_app():
-
-    app = web.Application()
+    app = web.Application(middlewares=[db_session_middleware])
+    app.add_routes(routes)
 
     app['config'] = config
 
