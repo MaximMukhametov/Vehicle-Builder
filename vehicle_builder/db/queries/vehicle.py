@@ -19,17 +19,17 @@ def _sql_stmt_vehicle_data(features: List[int]) -> TextClause:
     return text(
         "with RECURSIVE "
         "    group_hierarchy AS ( "
-        "        SELECT id, name, group_id, 0 AS relative_depth, f.id as feature_id "
+        "        SELECT id, name, False AS is_set, group_id, 0 AS relative_depth, f.id as feature_id "
         "        FROM feature f "
         f"        where id = ANY (ARRAY{features}) "
         "        UNION ALL "
-        "        SELECT g.id, g.name, g.group_id, gh.relative_depth - 1, gh.feature_id as feature_id "
+        "        SELECT g.id, g.name, g.is_set, g.group_id, gh.relative_depth - 1, gh.feature_id as feature_id "
         '        FROM "group" g, '
         "             group_hierarchy gh "
         "        WHERE g.id = gh.group_id "
         "    ), "
         "    feature_with_hierarchy AS ( "
-        "        SELECT feature_id, array_agg((h.id, h.name)) as hierarchy "
+        "        SELECT feature_id, array_agg((h.id, h.name, h.is_set)) as hierarchy "
         "        FROM group_hierarchy h "
         "        group by feature_id "
         "    ) "
@@ -56,6 +56,7 @@ class FeatureModel(BaseModel):
 
 class GroupModel(BaseModel):
     name: str
+    is_set: bool
     subgroups: Dict[int, GroupModel] = dict()
     features: Dict[int, FeatureModel] = dict()
 
@@ -69,12 +70,12 @@ class VehicleModel(BaseModel):
 
 def _build_tree(node: dict, hierarchy: List[int], pointer: int = -1) -> FeatureModel:
     """Build a tree of Groups, Features according to hierarchy list."""
-    id, name = hierarchy[pointer][:2]
+    id, name, is_set = hierarchy[pointer][:3]
     if id not in node:
-        node[id] = GroupModel(name=name)
+        node[id] = GroupModel(name=name, is_set=is_set)
 
     if -pointer == len(hierarchy) - 1:
-        feature_id, feature_name = hierarchy[0]
+        feature_id, feature_name, _ = hierarchy[0]
         feature = FeatureModel(name=feature_name)
         node[id].features.update({feature_id: feature})
         return feature

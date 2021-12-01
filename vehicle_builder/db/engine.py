@@ -28,7 +28,7 @@ async def add_initial_data(engine):
     async with async_session() as session:
         async with session.begin():
             group1 = Group(name="Group1")
-            group2 = Group(name="Group2", parent=group1)
+            group2 = Group(name="Group2", is_set=True, parent=group1)
             group3 = Group(name="Group3", parent=group2)
             group4 = Group(name="Group4")
 
