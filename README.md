@@ -13,4 +13,4 @@ To check the functionality of the application use url:
 http://localhost/vehicle/1
 
 Database schema:
-![database schema](database_schema.png))
+![database schema](database_relations_schema.png)
