@@ -1,0 +1,9 @@
+.git
+.python-version
+.tern-port
+.venv
+.virtualenv
+.vscode
+TAGS
+__pycache__/*
+__version__.py
