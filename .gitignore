@@ -1,0 +1,5 @@
+__pycache__/*
+*.py[cod]
+vehicle_builder/__pycache__
+.python-version
+.idea/
