@@ -35,8 +35,8 @@ async def add_initial_data(engine):
             feature1 = Feature(name="Feature1", group=group1)
             feature2 = Feature(name="Feature2", group=group3)
             feature3 = Feature(name="Feature3", group=group4)
-            feature4 = Feature(name="Feature4", group=group2)
-            feature5 = Feature(name="Feature5", group=group2)
+            feature4 = Feature(name="Feature4", group=group3)
+            feature5 = Feature(name="Feature5", group=group3)
 
             function1 = Function(name="Function1", feature=feature1)
             function2 = Function(name="Function2", feature=feature1)
@@ -45,6 +45,8 @@ async def add_initial_data(engine):
             function5 = Function(name="Function5", feature=feature3)
             function6 = Function(name="Function6", feature=feature3)
             function7 = Function(name="Function7", feature=feature3)
+            function8 = Function(name="Function8", feature=feature4)
+            function9 = Function(name="Function9", feature=feature5)
 
             component1 = Component(
                 name="Component1",
@@ -64,7 +66,7 @@ async def add_initial_data(engine):
                 weight=Decimal("500.15"),
             )
 
-            vehicle = Vehicle(name="Vehicle1", range=400, features=[feature1, feature2, feature3])
+            vehicle = Vehicle(name="Vehicle1", range=400, features=[feature1, feature2, feature3, feature4, feature5])
 
             function_component = FunctionComponent(
                 vehicle=vehicle, function=function1, component=component1
@@ -73,9 +75,9 @@ async def add_initial_data(engine):
             session.add_all(
                 [
                     group1, group2, group3, group4, feature1, feature2, feature3,
-                    feature4, feature5, component1, component2,
+                    feature4, feature5, function6, function7, function8, component1, component2,
                     function1, function2, function3, function4, function5,
-                    function6, function7, vehicle, function_component,
+                    function6, function7, function8, function9, vehicle, function_component,
                 ]
             )
 

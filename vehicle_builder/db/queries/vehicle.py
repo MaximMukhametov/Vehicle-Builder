@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 from pydantic import BaseModel
 from sqlalchemy import text
@@ -68,27 +68,30 @@ class VehicleModel(BaseModel):
     features: RootGroupModel = RootGroupModel()
 
 
-def _build_tree(node: dict, hierarchy: List[int], pointer: int = -1) -> FeatureModel:
-    """Build a tree of Groups, Features according to hierarchy list."""
-    id, name, is_set = hierarchy[pointer][:3]
-    if id not in node:
-        node[id] = GroupModel(name=name, is_set=is_set)
+def _build_tree(subgroups: Dict[int, GroupModel], hierarchy: List[int], functions: Tuple[int, str]) -> None:
+    """Build a tree of Groups, Features, Functions according to hierarchy list."""
+    last_group = None
+    for group_id, group_name, is_set in hierarchy[:0:-1]:
+        if group_id not in subgroups:
+            subgroups[group_id] = GroupModel(name=group_name, is_set=is_set)
+        last_group = subgroups[group_id]
+        subgroups = subgroups[group_id].subgroups
 
-    if -pointer == len(hierarchy) - 1:
-        feature_id, feature_name, _ = hierarchy[0]
-        feature = FeatureModel(name=feature_name)
-        node[id].features.update({feature_id: feature})
-        return feature
+    feature_id, feature_name, _ = hierarchy[0]
+    feature = FeatureModel(name=feature_name)
+    last_group.features.update({feature_id: feature})
 
-    return _build_tree(node[id].subgroups, hierarchy, pointer - 1)
+    # set all functions related to the feature
+    for func_id, func_name in functions:
+        feature.functions.update({func_id: FunctionModel(name=func_name)})
 
 
 async def _get_vehicle_raw_tuples(session: AsyncSession, features: List[int]) -> List[Row]:
     """Get raw tuples with hierarchy list of groups, features, and functions related to all features.
 
     Example:
-        feature_id | hierarchy | functions
-        2 | {"(1,Feature2)","(4,Group3)","(3,Group2)","(1,Group1)"} | {""(2,Function1)"",""(3,Function2)""}
+        (feature_id, hierarchy[(id, name, is_set)], functions[(id, name)])
+        (1, [(1, 'Feature2', False), (3, 'Group2', True), (1, 'Group1', False)], [(1, 'Function4')])
 
     """
     vehicle_result = await session.execute(_sql_stmt_vehicle_data(features))
@@ -100,11 +103,7 @@ async def get_vehicle_features(session: AsyncSession, features: List[int]) -> Ro
     raw_tuples = await _get_vehicle_raw_tuples(session, features)
     root = RootGroupModel()
     for _, hierarchy, functions in raw_tuples:
-        feature = _build_tree(node=root.groups, hierarchy=hierarchy)
-
-        # set all functions related to the feature
-        for func_id, func_name in functions:
-            feature.functions.update({func_id: FunctionModel(name=func_name)})
+        _build_tree(subgroups=root.groups, hierarchy=hierarchy, functions=functions)
 
     return root
 
