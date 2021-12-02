@@ -1,14 +1,14 @@
 from aiohttp import web
 
-from db.exceptions import RecordNotFound
-from db.queries.vehicle import get_vehicle
+from app.db.exceptions import RecordNotFound
+from app.services.vehicle import get_vehicle
 from exceptions import JsonHTTPNotFound
 
 routes = web.RouteTableDef()
 
 
 @routes.get('/vehicle/{id}')
-async def vehicle(request):
+async def read_vehicle(request):
     """Retrieve data about a particular vehicle."""
     vehicle_id = int(request.match_info['id'])
     try:

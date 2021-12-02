@@ -5,16 +5,21 @@ from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
-from sqlalchemy.sql.elements import TextClause
 
-from db.exceptions import RecordNotFound
-from db.models import Vehicle
-from db.schemas import GroupModel, FeatureModel, FunctionModel, RootGroupModel, VehicleModel
+from app.db.exceptions import RecordNotFound
+from app.db.models import Vehicle
+from app.db.schemas import GroupModel, FeatureModel, FunctionModel, VehicleModel
 
 
-def _sql_stmt_vehicle_data(features: List[int]) -> TextClause:
-    """SQL statement for getting hierarchy list of groups, features, and functions related to all features."""
-    return text(
+async def _get_vehicle_raw_tuples(session: AsyncSession, features: List[int]) -> List[Row]:
+    """Get raw tuples with hierarchy list of groups, features, and functions related to all features.
+
+    Example:
+        (feature_id, hierarchy[(id, name, is_set)], functions[(id, name)])
+        (1, [(1, 'Feature2', False), (3, 'Group2', True), (1, 'Group1', False)], [(1, 'Function4')])
+
+    """
+    stmt = text(
         "with RECURSIVE "
         "    group_hierarchy AS ( "
         "        SELECT id, name, False AS is_set, group_id, f.id as feature_id "
@@ -36,6 +41,8 @@ def _sql_stmt_vehicle_data(features: List[int]) -> TextClause:
         "         join function f on fwh.feature_id = f.feature_id "
         "group by fwh.feature_id, fwh.hierarchy; "
     )
+    vehicle_result = await session.execute(stmt)
+    return vehicle_result.fetchall()
 
 
 def _build_tree(subgroups: Dict[int, GroupModel], hierarchy: List[int], functions: Tuple[int, str]) -> None:
@@ -56,24 +63,12 @@ def _build_tree(subgroups: Dict[int, GroupModel], hierarchy: List[int], function
         feature.functions.update({func_id: FunctionModel(id=func_id, name=func_name)})
 
 
-async def _get_vehicle_raw_tuples(session: AsyncSession, features: List[int]) -> List[Row]:
-    """Get raw tuples with hierarchy list of groups, features, and functions related to all features.
-
-    Example:
-        (feature_id, hierarchy[(id, name, is_set)], functions[(id, name)])
-        (1, [(1, 'Feature2', False), (3, 'Group2', True), (1, 'Group1', False)], [(1, 'Function4')])
-
-    """
-    vehicle_result = await session.execute(_sql_stmt_vehicle_data(features))
-    return vehicle_result.fetchall()
-
-
-async def get_vehicle_features(session: AsyncSession, features: List[int]) -> RootGroupModel:
+async def get_vehicle_features(session: AsyncSession, features: List[int]) -> Dict[int, GroupModel]:
     """Get a tree of Groups, Features and Functions for by Vehicle."""
     raw_tuples = await _get_vehicle_raw_tuples(session, features)
-    root = RootGroupModel()
+    root = dict()
     for _, hierarchy, functions in raw_tuples:
-        _build_tree(subgroups=root.groups, hierarchy=hierarchy, functions=functions)
+        _build_tree(subgroups=root, hierarchy=hierarchy, functions=functions)
 
     return root
 
@@ -89,6 +84,6 @@ async def get_vehicle(session: AsyncSession, vehicle_id: id) -> VehicleModel:
 
     vehicle_data = vehicle.to_dict()
     if features := [f.id for f in vehicle.features]:
-        vehicle_data["features"] = await get_vehicle_features(session, features)
+        vehicle_data["groups"] = await get_vehicle_features(session, features)
 
     return VehicleModel(**vehicle_data)

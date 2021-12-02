@@ -5,11 +5,6 @@ from typing import Dict
 from pydantic import BaseModel
 
 
-class RootGroupModel(BaseModel):
-    name: str = "Root Group"
-    groups: Dict[int, GroupModel] = dict()
-
-
 class FunctionModel(BaseModel):
     id: int
     name: str
@@ -33,4 +28,4 @@ class VehicleModel(BaseModel):
     id: int
     name: str
     range: int
-    features: RootGroupModel = RootGroupModel()
+    groups: Dict[int, GroupModel] = dict()

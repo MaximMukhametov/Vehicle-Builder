@@ -4,8 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-import settings
-from db.models import Base, Feature, Group, Function, Component, Vehicle, FunctionComponent
+from app.config import settings
+from app.db.models import Base, Feature, Group, Function, Component, Vehicle, FunctionComponent
 
 
 async def pg_context(app):

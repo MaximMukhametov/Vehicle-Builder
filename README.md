@@ -4,7 +4,7 @@ To run project just use:
 docker-compose up
 ```
   
-Style cheking:
+Style checking:
 ```bash
 flake8
 ```

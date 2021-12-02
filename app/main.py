@@ -1,6 +1,6 @@
 from aiohttp import web
 
-import settings
+from app.config import settings
 from db.engine import pg_context
 from middlewares import db_session_middleware
 from views import routes

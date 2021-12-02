@@ -12,10 +12,11 @@ services:
     build:
       dockerfile: Dockerfile
       context: .
+    command: >
+      bash -c "while ! curl http://postgres:5432/ 2>&1 | grep '52'; do sleep 1; done; 
+      python3 main.py"
     depends_on:
       - postgres
-    volumes:
-      - ./vehicle_builder:/app
     ports:
       - "80:8000"
     env_file:
