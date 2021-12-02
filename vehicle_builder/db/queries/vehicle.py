@@ -1,8 +1,5 @@
-from __future__ import annotations
-
 from typing import List, Dict, Tuple
 
-from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +9,7 @@ from sqlalchemy.sql.elements import TextClause
 
 from db.exceptions import RecordNotFound
 from db.models import Vehicle
+from db.schemas import GroupModel, FeatureModel, FunctionModel, RootGroupModel, VehicleModel
 
 
 def _sql_stmt_vehicle_data(features: List[int]) -> TextClause:
@@ -40,50 +38,22 @@ def _sql_stmt_vehicle_data(features: List[int]) -> TextClause:
     )
 
 
-class RootGroupModel(BaseModel):
-    name: str = "Root Group"
-    groups: Dict[int, GroupModel] = dict()
-
-
-class FunctionModel(BaseModel):
-    name: str
-
-
-class FeatureModel(BaseModel):
-    name: str
-    functions: Dict[int, FunctionModel] = dict()
-
-
-class GroupModel(BaseModel):
-    name: str
-    is_set: bool
-    subgroups: Dict[int, GroupModel] = dict()
-    features: Dict[int, FeatureModel] = dict()
-
-
-class VehicleModel(BaseModel):
-    id: int
-    name: str
-    range: int
-    features: RootGroupModel = RootGroupModel()
-
-
 def _build_tree(subgroups: Dict[int, GroupModel], hierarchy: List[int], functions: Tuple[int, str]) -> None:
     """Build a tree of Groups, Features, Functions according to hierarchy list."""
     last_group = None
     for group_id, group_name, is_set in hierarchy[:0:-1]:
         if group_id not in subgroups:
-            subgroups[group_id] = GroupModel(name=group_name, is_set=is_set)
+            subgroups[group_id] = GroupModel(id=group_id, name=group_name, is_set=is_set)
         last_group = subgroups[group_id]
         subgroups = subgroups[group_id].subgroups
 
     feature_id, feature_name, _ = hierarchy[0]
-    feature = FeatureModel(name=feature_name)
+    feature = FeatureModel(id=feature_id, name=feature_name)
     last_group.features.update({feature_id: feature})
 
     # set all functions related to the feature
     for func_id, func_name in functions:
-        feature.functions.update({func_id: FunctionModel(name=func_name)})
+        feature.functions.update({func_id: FunctionModel(id=func_id, name=func_name)})
 
 
 async def _get_vehicle_raw_tuples(session: AsyncSession, features: List[int]) -> List[Row]:
